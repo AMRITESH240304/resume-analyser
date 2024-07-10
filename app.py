@@ -50,8 +50,18 @@ def find_section(text, start_word, end_word):
     start_index = text.lower().find(start_word.lower())
     end_index = text.lower().find(end_word.lower(), start_index)
     if start_index != -1 and end_index != -1:
-        return text[start_index:end_index + len(end_word)]
-    return None
+        return text[start_index:end_index + len(end_word)] 
+
+def full_ocr(image):
+    text_folder = 'text_file'
+    os.makedirs(text_folder,exist_ok=True)
+    fileName = 'full_text.txt'
+    text_path = os.path.join(text_folder,fileName)
+    
+    with open(text_path,'w') as file:
+        file.write(text)
+        
+    print(f'file saved successfully')
 
 def save_to_txt(text):
     text_folder = 'text_file'
@@ -78,6 +88,7 @@ for page_path in Pages:
     text = extract_text(binary_image)
     full_text += text + "\n"
     
+full_ocr(full_text)
 section_text = find_section(full_text, start_word, end_word)
 
 if section_text:

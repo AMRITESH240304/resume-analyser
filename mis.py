@@ -1,4 +1,5 @@
-from langchain_mistralai import MistralAIEmbeddings
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_community.document_loaders import TextLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 import warnings
@@ -9,13 +10,16 @@ from pymongo import MongoClient
 from dotenv import load_dotenv
 load_dotenv()
 
-loader = TextLoader('text_file/text.txt')
+loader = TextLoader('text_file/full_text.txt')
 docs = loader.load()
 
-text_spiliter = RecursiveCharacterTextSplitter(chunk_size=2000, chunk_overlap=2)
+text_spiliter = RecursiveCharacterTextSplitter(chunk_size=200, chunk_overlap=20)
 splits = text_spiliter.split_documents(docs)
+# print(splits[0].page_content)
 
-embeddings = MistralAIEmbeddings(model="mistral-embed", mistral_api_key=os.getenv('MISTRAL_AI_API_KEY'))
+embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001",google_api_key=os.getenv('GEMINI_API_KEY'))
+
+# embeddings = MistralAIEmbeddings(model="mistral-embed", mistral_api_key=os.getenv('MISTRAL_AI_API_KEY'))
 
 store = [] 
 embedding = []
@@ -32,9 +36,9 @@ docsearch = MongoDBAtlasVectorSearch.from_documents(
     splits, embeddings, collection=collection, index_name="embeddings"
 )
     
-# for i in store:
-#     embed = embeddings.embed_documents([i])
-#     embedding.append({"content": i, "embedding": embed})
+print(docsearch)
+print("Embeddings saved to MongoDB vector base")
+
 
 
 

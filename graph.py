@@ -43,3 +43,10 @@ plt.title("Skills and Programming Languages Network Graph")
 plt.savefig("skills_languages_network_graph.png")
 
 print("Graph has been saved as 'skills_languages_network_graph.png'")
+
+docs = vectorStore.similarity_search(query, k=6)
+print("Vector Search Results:")
+# print(docs[0].page_content)
+
+for i in docs:
+    print(i.page_content)

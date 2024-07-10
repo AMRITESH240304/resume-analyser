@@ -1,13 +1,15 @@
 from pymongo import MongoClient
+import timeout_decorator
 import argparse
 from langchain.vectorstores import MongoDBAtlasVectorSearch
-from langchain_mistralai import MistralAIEmbeddings
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain.retrievers import ContextualCompressionRetriever
-from langchain_mistralai import ChatMistralAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.retrievers.document_compressors import LLMChainExtractor
 import warnings
 from dotenv import load_dotenv
 import os
+
 load_dotenv()
 warnings.filterwarnings('ignore')
 
@@ -23,17 +25,26 @@ print("\nYour question:")
 print("-------------")
 print(query)
 
-embeddings = MistralAIEmbeddings(model="mistral-embed", mistral_api_key=os.getenv('MISTRAL_AI_API_KEY'))
+embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001",google_api_key=os.getenv('GEMINI_API_KEY'))
 
 vectorStore = MongoDBAtlasVectorSearch(collection, embeddings, index_name="vector_index")
 
 print("---------------")
 
-docs = vectorStore.max_marginal_relevance_search(query, K=1)
-print("Vector Search Results:")
-print(docs[0].page_content)
+@timeout_decorator.timeout(5, timeout_exception=StopIteration)
+def get_docs(query):
+    try:
+        print("inside the function")
+        print(query)
+        docs = vectorStore.max_marginal_relevance_search(query, K=1)
+        print("Vector Search Results:")
+        print(docs[0].page_content)
+    except Exception as e:
+        print("Database timeout or error:", str(e))
 
-llm = ChatMistralAI(mistral_api_key=os.getenv('MISTRAL_AI_API_KEY'), temperature=0.6)
+get_docs(query)
+
+llm = ChatGoogleGenerativeAI(model="gemini-pro",google_api_key=os.getenv('GEMINI_API_KEY'), temperature=0.6)
 compressor = LLMChainExtractor.from_llm(llm)
 
 compression_retriever = ContextualCompressionRetriever(
