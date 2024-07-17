@@ -12,8 +12,8 @@ load_dotenv()
 
 loader = TextLoader('text_file/full_text.txt')
 docs = loader.load()
-
-text_spiliter = RecursiveCharacterTextSplitter(chunk_size=200, chunk_overlap=20)
+    
+text_spiliter = RecursiveCharacterTextSplitter(chunk_size=600, chunk_overlap=20)
 splits = text_spiliter.split_documents(docs)
 # print(splits[0].page_content)
 

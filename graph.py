@@ -1,52 +1,77 @@
-import networkx as nx
-import matplotlib.pyplot as plt
+from neo4j import GraphDatabase
+import os
+from dotenv import load_dotenv
 
-G = nx.DiGraph()
+# Load environment variables from .env file
+load_dotenv()
 
-skills = ["Machine Learning", "Deeplearning", "NLP", "LLM"]
-languages = ["Python", "Javascript", "C++", "C"]
+# Get Neo4j credentials from environment variables
+URI = os.getenv('NEO4JDB_URI')
+AUTH = (os.getenv('NEO4JDB_USERNAME'), os.getenv('NEO4JDB_PASSWORD'))
 
-edges = [
-    ("Machine Learning", "Python"),
-    ("Deeplearning", "Python"),
-    ("NLP", "Python"),
-    ("LLM", "Python"),
-    ("Machine Learning", "C++"),
-    ("Deeplearning", "C++"),
-    ("NLP", "C++"),
-    ("LLM", "C++"),
-    ("Machine Learning", "C"),
-    ("Deeplearning", "C"),
-    ("NLP", "C"),
-    ("LLM", "C"),
-    ("Machine Learning", "Javascript"),
-    ("Deeplearning", "Javascript"),
-    ("NLP", "Javascript"),
-    ("LLM", "Javascript")
-]
+# Function to create nodes and relationships
+def create_nodes_and_relationships(driver):
+    with driver.session() as session:
+        session.write_transaction(add_skills_projects_and_tech)
 
-G.add_edges_from(edges)
+# Transaction function to create nodes and relationships
+def add_skills_projects_and_tech(tx):
+    skills = ["Machine Learning", "Deep Learning", "NLP", "LLM"]
+    projects = [
+        {
+            "name": "Jai Kisan",
+            "tech": ["Random Forest", "Sentimental Analysis", "Deep Learning"]
+        },
+        {
+            "name": "Samvidhan Ai",
+            "tech": ["Bart LLM model", "Qlora", "FastApi"]
+        },
+        {
+            "name": "Stop Sign Generator",
+            "tech": ["DCGAN", "FastApi", "YOLO", "SSD"]
+        }
+    ]
+    development_techs = ["ML Algorithms", "TensorFlow", "Pytorch", "ResNet50", "VGG19", "EfficientNetB0", "CNN", "RNN", "FastApi", "NodeJs", "MongoDB"]
 
-pos = nx.spring_layout(G) 
+    # Create Skill nodes
+    for skill in skills:
+        tx.run("MERGE (s:Skill {name: $skill})", skill=skill)
 
-nx.draw_networkx_nodes(G, pos, node_size=7000, node_color='skyblue')
+    # Create Project and Tech nodes, and relationships
+    for project in projects:
+        tx.run("MERGE (p:Project {name: $project})", project=project["name"])
+        for tech in project["tech"]:
+            tx.run("MERGE (t:Technology {name: $tech})", tech=tech)
+            tx.run(
+                "MATCH (p:Project {name: $project}), (t:Technology {name: $tech}) "
+                "MERGE (p)-[:USES]->(t)", 
+                project=project["name"], tech=tech
+            )
 
-nx.draw_networkx_edges(G, pos, edgelist=edges, arrows=True)
+    # Create Development Technology nodes
+    for dev_tech in development_techs:
+        tx.run("MERGE (d:DevelopmentTech {name: $dev_tech})", dev_tech=dev_tech)
 
-nx.draw_networkx_labels(G, pos, font_size=12, font_family='sans-serif')
+    # Create relationships between skills and technologies used in projects
+    skill_tech_relationships = {
+        "Machine Learning": ["Random Forest", "Sentimental Analysis", "DCGAN"],
+        "Deep Learning": ["Deep Learning", "DCGAN"],
+        "NLP": ["Bart LLM model"],
+        "LLM": ["Bart LLM model", "Qlora"]
+    }
+    
+    for skill, techs in skill_tech_relationships.items():
+        for tech in techs:
+            tx.run(
+                "MATCH (s:Skill {name: $skill}), (t:Technology {name: $tech}) "
+                "MERGE (s)-[:RELATED_TO]->(t)",
+                skill=skill, tech=tech
+            )
 
-edge_labels = {edge: '' for edge in edges}
-nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_color='red')
+# Main code
+with GraphDatabase.driver(URI, auth=AUTH) as driver:
+    driver.verify_connectivity()
+    print("Connected to Neo4j")
 
-plt.title("Skills and Programming Languages Network Graph")
-
-plt.savefig("skills_languages_network_graph.png")
-
-print("Graph has been saved as 'skills_languages_network_graph.png'")
-
-docs = vectorStore.similarity_search(query, k=6)
-print("Vector Search Results:")
-# print(docs[0].page_content)
-
-for i in docs:
-    print(i.page_content)
+    create_nodes_and_relationships(driver)
+    print("Created nodes and relationships in Neo4j")
